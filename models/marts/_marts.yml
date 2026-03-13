@@ -12,6 +12,7 @@ models:
       - name: date_day
         description: Calendar date at day granularity.
         data_type: date
+        granularity: day
 
   - name: dim_players
     description: >
