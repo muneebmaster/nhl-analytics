@@ -13,6 +13,8 @@ semantic_models:
       Skater performance aggregated by player, season, and situation (all,
       5on5, powerPlay, other). Use situation = 'all' for full-season totals.
     model: ref('fct_skater_season_stats')
+    defaults:
+      agg_time_dimension: season_start_date
 
     entities:
       - name: skater_season_situation
@@ -23,6 +25,14 @@ semantic_models:
         expr: player_id
 
     dimensions:
+      - name: season_start_date
+        type: time
+        type_params:
+          time_granularity: year
+        expr: "DATE_FROM_PARTS(season - 1, 10, 1)"
+        description: >
+          Oct 1 of the prior calendar year — the start of the NHL season.
+          Season 2024 → 2023-10-01 (the 2023-24 season).
       - name: season
         type: categorical
         description: Season year (e.g., 2024 = 2023-24 season).
@@ -158,6 +168,8 @@ semantic_models:
       Team performance per season, all situations. One row per team per season.
       Use for team rankings, xGoals%, Corsi%, and goals for/against analysis.
     model: ref('fct_team_season_stats')
+    defaults:
+      agg_time_dimension: season_start_date
 
     entities:
       - name: team_season
@@ -165,6 +177,14 @@ semantic_models:
         expr: "team || '-' || season::varchar"
 
     dimensions:
+      - name: season_start_date
+        type: time
+        type_params:
+          time_granularity: year
+        expr: "DATE_FROM_PARTS(season - 1, 10, 1)"
+        description: >
+          Oct 1 of the prior calendar year — the start of the NHL season.
+          Season 2024 → 2023-10-01 (the 2023-24 season).
       - name: season
         type: categorical
       - name: team
@@ -206,6 +226,8 @@ semantic_models:
       Goalie performance per season, all situations. Includes goals saved above
       expected (GSAx) and high danger save percentage.
     model: ref('fct_goalie_season_stats')
+    defaults:
+      agg_time_dimension: season_start_date
 
     entities:
       - name: goalie_season
@@ -216,6 +238,14 @@ semantic_models:
         expr: player_id
 
     dimensions:
+      - name: season_start_date
+        type: time
+        type_params:
+          time_granularity: year
+        expr: "DATE_FROM_PARTS(season - 1, 10, 1)"
+        description: >
+          Oct 1 of the prior calendar year — the start of the NHL season.
+          Season 2024 → 2023-10-01 (the 2023-24 season).
       - name: season
         type: categorical
       - name: player_name
