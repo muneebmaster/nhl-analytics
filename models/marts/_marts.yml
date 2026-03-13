@@ -296,9 +296,8 @@ models:
       on arena-adjusted coordinates and shot distance.
     columns:
       - name: shot_id
-        description: Unique identifier for the shot.
+        description: Unique identifier for the shot within a season (resets each season).
         tests:
-          - unique
           - not_null
       - name: game_id
         description: Game identifier.
