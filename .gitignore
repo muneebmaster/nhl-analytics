@@ -1,0 +1,23 @@
+# Secrets
+*.txt
+.env
+
+# Raw data (large CSVs — already loaded to Snowflake)
+raw_data/
+
+# dbt artifacts
+target/
+dbt_packages/
+logs/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# dbt profiles (contains credentials — configure in dbt Cloud)
+profiles.yml
+
+# macOS
+.DS_Store

@@ -1,0 +1,27 @@
+version: 2
+
+sources:
+  - name: moneypuck
+    database: MUNEEB_MASTER_RAW_DATA
+    schema: MONEYPUCK
+    tables:
+      - name: raw_skaters_season_summary
+        description: Skater season-level stats from MoneyPuck, 2008-2025
+      - name: raw_goalies_season_summary
+        description: Goalie season-level stats from MoneyPuck, 2008-2025
+      - name: raw_teams_season_summary
+        description: Team season-level stats from MoneyPuck, 2008-2025
+      - name: raw_lines_season_summary
+        description: Line combination season-level stats from MoneyPuck, 2008-2025
+      - name: raw_skaters_game_by_game
+        description: Skater game-by-game stats from MoneyPuck, 2008-2025
+      - name: raw_goalies_game_by_game
+        description: Goalie game-by-game stats from MoneyPuck, 2008-2025
+      - name: raw_lines_game_by_game
+        description: Line combination game-by-game stats from MoneyPuck, 2008-2025
+      - name: raw_teams_game_by_game
+        description: Team game-by-game stats from MoneyPuck, 2008-2025
+      - name: raw_player_bios
+        description: Player biographical data including height, weight, nationality
+      - name: raw_shots
+        description: Shot-level event data from MoneyPuck, 2023-2024

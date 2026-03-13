@@ -1,0 +1,360 @@
+version: 2
+
+models:
+  - name: dim_players
+    description: >
+      Player dimension table. One row per player containing biographical
+      attributes. Age is computed dynamically at query time from birth_date.
+      This table is the authoritative source for player identity attributes
+      across all mart models.
+    columns:
+      - name: player_id
+        description: Unique integer identifier for the player (natural key from MoneyPuck).
+        tests:
+          - unique
+          - not_null
+      - name: player_name
+        description: Full player name.
+      - name: position
+        description: Player position code (C, L, R, D, G).
+      - name: primary_position
+        description: Primary position abbreviation.
+      - name: current_team
+        description: Player's most recently known team.
+      - name: birth_date
+        description: Player's date of birth.
+      - name: age
+        description: Current age in years, computed from birth_date at query time.
+      - name: height
+        description: Player height in raw format from the source (e.g., "6' 2\"").
+      - name: weight_lbs
+        description: Player weight in pounds.
+      - name: nationality
+        description: Two or three letter nationality code (e.g., CAN, USA, SWE).
+      - name: shoots_catches
+        description: >
+          Shooting hand for skaters, catching hand for goalies.
+          Values: L (left) or R (right).
+      - name: jersey_number
+        description: Player's current jersey number.
+
+  - name: fct_skater_season_stats
+    description: >
+      Primary analytical fact table for skater season performance. Built from
+      int_skaters_with_bios and filtered to meaningful situation categories
+      (all, 5on5, powerPlay, other). Each row is one player-season-situation.
+      Includes all bio attributes and per-60 rate stats.
+    columns:
+      - name: player_id
+        description: Unique integer identifier for the player.
+      - name: season
+        description: Season year (e.g., 2023 = 2023-24 season).
+      - name: player_name
+        description: Full player name.
+      - name: team
+        description: Team code for this season.
+      - name: position
+        description: Player position (C, L, R, D).
+      - name: situation
+        description: Ice situation (all, 5on5, powerPlay, other).
+      - name: games_played
+        description: Number of games played this season.
+      - name: ice_time_seconds
+        description: Total ice time in seconds.
+      - name: goals
+        description: Goals scored.
+      - name: primary_assists
+        description: Primary (first) assists.
+      - name: secondary_assists
+        description: Secondary (second) assists.
+      - name: assists
+        description: Total assists.
+      - name: points
+        description: Total points (goals + assists).
+      - name: shots_on_goal
+        description: Shots that reached the goalie.
+      - name: shot_attempts
+        description: All shot attempts including missed and blocked shots.
+      - name: individual_xgoals
+        description: >
+          Expected goals from this player's own shots. Measures shot quality
+          independent of actual finishing.
+      - name: game_score
+        description: >
+          MoneyPuck's composite season game score. Aggregates contributions
+          across all game events into a single number.
+      - name: hits
+        description: Hits delivered.
+      - name: takeaways
+        description: Puck takeaways.
+      - name: giveaways
+        description: Puck giveaways.
+      - name: penalty_minutes
+        description: Penalty minutes taken.
+      - name: on_ice_xgoals_pct
+        description: >
+          Expected goals percentage while player is on ice.
+          Values above 50% indicate positive possession contribution.
+      - name: on_ice_corsi_pct
+        description: Corsi percentage (all shot attempts) while on ice.
+      - name: on_ice_fenwick_pct
+        description: Fenwick percentage (unblocked shots) while on ice.
+      - name: points_per_60
+        description: Points per 60 minutes of ice time. Key rate stat for scoring pace.
+      - name: goals_per_60
+        description: Goals per 60 minutes of ice time.
+      - name: xgoals_per_60
+        description: >
+          Individual expected goals per 60 minutes. Measures shot generation
+          quality relative to ice time.
+      - name: assists_per_60
+        description: Total assists per 60 minutes.
+      - name: shots_per_60
+        description: Shots on goal per 60 minutes.
+      # Bio columns from join
+      - name: birth_date
+        description: Player date of birth.
+      - name: height
+        description: Player height.
+      - name: weight_lbs
+        description: Player weight in pounds.
+      - name: nationality
+        description: Player nationality code.
+      - name: shoots_catches
+        description: Shooting hand.
+      - name: jersey_number
+        description: Jersey number.
+
+  - name: fct_goalie_season_stats
+    description: >
+      Goalie season performance fact table. Filtered to 'all' situations.
+      Built from int_goalie_performance and adds per-60 rates. The key
+      analytical metrics are goals_saved_above_expected and save_pct_vs_expected,
+      which adjust for shot quality to isolate goalie skill.
+    columns:
+      - name: player_id
+        description: Unique integer identifier for the goalie.
+      - name: season
+        description: Season year.
+      - name: player_name
+        description: Full goalie name.
+      - name: team
+        description: Team code.
+      - name: games_played
+        description: Games played.
+      - name: ice_time_seconds
+        description: Total ice time in seconds.
+      - name: xgoals_against
+        description: Expected goals against based on shot quality allowed.
+      - name: goals_against
+        description: Actual goals allowed.
+      - name: shots_against
+        description: Shots on goal faced (unblocked attempts).
+      - name: saves
+        description: Shots on goal stopped.
+      - name: save_pct
+        description: Fraction of shots on goal saved.
+      - name: goals_saved_above_expected
+        description: >
+          Goals saved above what an average goalie would save given the same
+          shots. Positive = above average. Derived as xgoals_against - goals_against.
+      - name: save_pct_vs_expected
+        description: >
+          Actual save percentage minus expected save percentage. Isolates goalie
+          skill from team shot quality. Positive values indicate above-average play.
+      - name: goals_saved_above_expected_per_60
+        description: >
+          Goals saved above expected normalized to 60 minutes of ice time.
+          Enables fair comparison between goalies with different workloads.
+      - name: saves_per_60
+        description: Saves per 60 minutes of ice time.
+      - name: high_danger_save_pct
+        description: >
+          Save percentage on high-danger shots only (slot and crease area).
+          Strong indicator of elite goaltending.
+      - name: high_danger_goals_against
+        description: Goals allowed from high-danger areas.
+      - name: high_danger_shots_against
+        description: Shots on goal from high-danger areas.
+
+  - name: fct_team_season_stats
+    description: >
+      Team season performance fact table. Filtered to 'all' situations for
+      full-game context. Includes per-game rate stats and xGoal differential
+      per 60 minutes as a pace-neutral quality metric.
+    columns:
+      - name: team
+        description: Three-letter team code.
+      - name: season
+        description: Season year.
+      - name: team_name
+        description: Full team name.
+      - name: games_played
+        description: Games played in the season.
+      - name: ice_time_seconds
+        description: Total ice time in seconds (all situations combined).
+      - name: xgoals_pct
+        description: Expected goals percentage. Values above 50% indicate possession dominance.
+      - name: corsi_pct
+        description: >
+          Corsi percentage (all shot attempts for / total). Traditional possession proxy.
+      - name: fenwick_pct
+        description: >
+          Fenwick percentage (unblocked shots). Similar to Corsi but excludes blocked shots.
+      - name: goals_for
+        description: Total goals scored.
+      - name: goals_against
+        description: Total goals allowed.
+      - name: goal_diff
+        description: Goals for minus goals against. Primary standings metric.
+      - name: xgoals_for
+        description: Total expected goals scored.
+      - name: xgoals_against
+        description: Total expected goals allowed.
+      - name: xgoal_diff
+        description: Expected goal differential. Better predictor of future performance than goal_diff.
+      - name: goals_per_game
+        description: Average goals scored per game.
+      - name: goals_against_per_game
+        description: Average goals allowed per game.
+      - name: xgoals_for_per_game
+        description: Average expected goals scored per game.
+      - name: xgoals_against_per_game
+        description: Average expected goals allowed per game.
+      - name: xgoal_diff_per_60
+        description: >
+          Expected goal differential per 60 minutes. Normalizes for teams
+          with different total ice time (pace). Positive = above-average team.
+      - name: shots_for
+        description: Total shots on goal for.
+      - name: shots_against
+        description: Total shots on goal against.
+      - name: face_offs_won
+        description: Total faceoffs won.
+      - name: hits_for
+        description: Total hits delivered.
+      - name: takeaways_for
+        description: Total takeaways.
+      - name: giveaways_for
+        description: Total giveaways.
+
+  - name: fct_skater_game_stats
+    description: >
+      Game-by-game skater fact table. Each row is one player-game-situation.
+      Adds per-60 rate stats and a categorical game_score_tier to quickly
+      classify the quality of each individual game performance.
+    columns:
+      - name: player_id
+        description: Unique integer identifier for the player.
+      - name: player_name
+        description: Full player name.
+      - name: game_id
+        description: Unique game identifier.
+      - name: season
+        description: Season year.
+      - name: team
+        description: Player's team for this game.
+      - name: opposing_team
+        description: Opponent team code.
+      - name: home_or_away
+        description: Whether the player's team was home or away.
+      - name: game_date
+        description: Date of the game.
+      - name: situation
+        description: Ice situation filter.
+      - name: ice_time_seconds
+        description: Ice time in this game in seconds.
+      - name: game_score
+        description: MoneyPuck game score for this individual performance.
+      - name: game_score_tier
+        description: >
+          Categorical tier based on game_score.
+          'Elite' (>= 3), 'Good' (>= 1.5), 'Average' (>= 0), 'Below Average' (< 0).
+      - name: goals
+        description: Goals scored in this game.
+      - name: primary_assists
+        description: Primary assists in this game.
+      - name: secondary_assists
+        description: Secondary assists in this game.
+      - name: assists
+        description: Total assists in this game.
+      - name: points
+        description: Total points in this game.
+      - name: xgoals
+        description: Individual expected goals in this game.
+      - name: points_per_60
+        description: Points per 60 minutes for this game. Useful for comparing across varying TOI.
+      - name: goals_per_60
+        description: Goals per 60 minutes for this game.
+      - name: xgoals_per_60
+        description: Individual expected goals per 60 minutes for this game.
+
+  - name: fct_shots
+    description: >
+      Shot-level fact table. One row per shot attempt. All columns from
+      stg_shots are preserved. Adds shot_danger_zone classification based
+      on arena-adjusted coordinates and shot distance.
+    columns:
+      - name: shot_id
+        description: Unique identifier for the shot.
+        tests:
+          - unique
+          - not_null
+      - name: game_id
+        description: Game identifier.
+      - name: season
+        description: Season year.
+      - name: period
+        description: Period of the shot (1, 2, 3, OT).
+      - name: time_seconds
+        description: Time in the period when the shot occurred, in seconds.
+      - name: shooter_player_id
+        description: Player ID of the shooter.
+      - name: shooter_name
+        description: Shooter's name.
+      - name: team_code
+        description: Shooting team's code.
+      - name: is_goal
+        description: True if the shot went in.
+      - name: shot_type
+        description: Type of shot (wrist, slap, snap, backhand, tip, deflection).
+      - name: was_on_goal
+        description: True if the shot was on net.
+      - name: shot_distance
+        description: Distance from the net in feet.
+      - name: shot_angle
+        description: Angle from center of the net in degrees.
+      - name: x_cord_adjusted
+        description: Arena-adjusted x-coordinate. Offensive zone is positive.
+      - name: y_cord_adjusted
+        description: Arena-adjusted y-coordinate. Center of the ice is 0.
+      - name: xgoal
+        description: >
+          Expected goal probability for this shot, incorporating distance,
+          angle, shot type, and game state.
+      - name: shot_goal_probability
+        description: MoneyPuck's shot-goal probability (may differ slightly from xgoal).
+      - name: is_rebound
+        description: True if the shot came off a rebound.
+      - name: is_rush
+        description: True if the shot came off a rush opportunity.
+      - name: home_skaters
+        description: Number of home team skaters on ice at time of shot.
+      - name: away_skaters
+        description: Number of away team skaters on ice at time of shot.
+      - name: home_goals
+        description: Home team goal count at time of shot.
+      - name: away_goals
+        description: Away team goal count at time of shot.
+      - name: goalie_id
+        description: Player ID of the goalie who faced the shot.
+      - name: goalie_name
+        description: Name of the goalie who faced the shot.
+      - name: home_win_probability
+        description: Home team win probability at time of shot.
+      - name: shot_danger_zone
+        description: >
+          Danger zone classification based on coordinates and distance.
+          'High' = slot/crease (x >= 69, abs(y) <= 9),
+          'Medium' = within 30 feet,
+          'Low' = all other locations.

@@ -1,0 +1,23 @@
+name: 'nhl_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'nhl_analytics'
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  nhl_analytics:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +schema: analytics
+      +materialized: table

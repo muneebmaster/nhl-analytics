@@ -1,0 +1,100 @@
+version: 2
+
+models:
+  - name: int_skaters_with_bios
+    description: >
+      Skater season statistics enriched with player biographical data. Joins
+      stg_skaters_season_summary to stg_player_bios on player_id. Bio columns
+      will be NULL for players not found in the bios table. This model feeds
+      directly into fct_skater_season_stats.
+    columns:
+      - name: player_id
+        description: Unique integer identifier for the player.
+      - name: season
+        description: Season year.
+      - name: player_name
+        description: Full player name (from skater stats table).
+      - name: team
+        description: Team code for this season.
+      - name: position
+        description: Player position (C, L, R, D).
+      - name: situation
+        description: Ice situation filter (all, 5on5, powerPlay, etc.).
+      - name: games_played
+        description: Number of games played.
+      - name: ice_time_seconds
+        description: Total ice time in seconds.
+      - name: goals
+        description: Goals scored.
+      - name: primary_assists
+        description: Primary assists.
+      - name: secondary_assists
+        description: Secondary assists.
+      - name: assists
+        description: Total assists (primary + secondary).
+      - name: points
+        description: Total points (goals + assists).
+      - name: individual_xgoals
+        description: Expected goals from the player's own shots.
+      - name: game_score
+        description: MoneyPuck composite game score for the season.
+      - name: on_ice_xgoals_pct
+        description: Expected goals percentage while on ice.
+      - name: on_ice_corsi_pct
+        description: Corsi percentage while on ice.
+      - name: on_ice_fenwick_pct
+        description: Fenwick percentage while on ice.
+      # Bio columns
+      - name: birth_date
+        description: Player date of birth (from bios; NULL if not matched).
+      - name: height
+        description: Player height (from bios; NULL if not matched).
+      - name: weight_lbs
+        description: Player weight in pounds (from bios; NULL if not matched).
+      - name: nationality
+        description: Player nationality (from bios; NULL if not matched).
+      - name: shoots_catches
+        description: Shooting/catching hand (from bios; NULL if not matched).
+      - name: jersey_number
+        description: Jersey number (from bios; NULL if not matched).
+
+  - name: int_goalie_performance
+    description: >
+      Goalie season statistics filtered to 'all' situations with two derived
+      performance metrics: goals saved above expected (GSAE) and save percentage
+      above expected. GSAE is positive when a goalie outperforms shot quality
+      expectations. This model feeds fct_goalie_season_stats.
+    columns:
+      - name: player_id
+        description: Unique integer identifier for the goalie.
+      - name: season
+        description: Season year.
+      - name: player_name
+        description: Full goalie name.
+      - name: team
+        description: Team code.
+      - name: situation
+        description: Always 'all' in this model (filtered at staging).
+      - name: games_played
+        description: Games played.
+      - name: ice_time_seconds
+        description: Total ice time in seconds.
+      - name: xgoals_against
+        description: Expected goals against based on shot quality allowed.
+      - name: goals_against
+        description: Actual goals allowed.
+      - name: shots_against
+        description: Unblocked shot attempts faced.
+      - name: saves
+        description: Shots on goal stopped.
+      - name: save_pct
+        description: Fraction of shots on goal stopped.
+      - name: goals_saved_above_expected
+        description: >
+          xGoals against minus actual goals against. Positive values indicate
+          the goalie stopped more goals than expected given shot quality.
+          Formula: xgoals_against - goals_against.
+      - name: save_pct_vs_expected
+        description: >
+          Actual save percentage minus expected save percentage. Positive values
+          indicate above-expected performance. NULL if no shots faced.
