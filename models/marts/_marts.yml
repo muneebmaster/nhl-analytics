@@ -1,6 +1,18 @@
 version: 2
 
 models:
+  - name: metricflow_time_spine
+    description: >
+      Date spine for MetricFlow semantic layer queries. Covers all NHL seasons
+      from 2007-08 onward through 2026. Required by dbt MetricFlow for
+      time-series metric aggregations.
+    time_spine:
+      standard_granularity_column: date_day
+    columns:
+      - name: date_day
+        description: Calendar date at day granularity.
+        data_type: date
+
   - name: dim_players
     description: >
       Player dimension table. One row per player containing biographical

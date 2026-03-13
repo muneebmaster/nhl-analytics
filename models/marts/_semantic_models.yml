@@ -1,0 +1,444 @@
+version: 2
+
+semantic_models:
+
+  # ---------------------------------------------------------------------------
+  # SKATER SEASON STATS
+  # One row per player × season × situation.
+  # Best for: top scorers, player comparisons, season-level leaderboards.
+  # Tip: filter situation = 'all' for full-season totals.
+  # ---------------------------------------------------------------------------
+  - name: skater_season_stats
+    description: >
+      Skater performance aggregated by player, season, and situation (all,
+      5on5, powerPlay, other). Use situation = 'all' for full-season totals.
+    model: ref('fct_skater_season_stats')
+
+    entities:
+      - name: skater_season_situation
+        type: primary
+        expr: "player_id || '-' || season::varchar || '-' || situation"
+      - name: player
+        type: foreign
+        expr: player_id
+
+    dimensions:
+      - name: season
+        type: categorical
+        description: Season year (e.g., 2024 = 2023-24 season).
+      - name: player_name
+        type: categorical
+      - name: team
+        type: categorical
+      - name: position
+        type: categorical
+        description: Player position (C, L, R, D).
+      - name: situation
+        type: categorical
+        description: Ice situation — all, 5on5, powerPlay, other.
+      - name: nationality
+        type: categorical
+
+    measures:
+      - name: skater_goals
+        agg: sum
+        expr: goals
+        description: Goals scored.
+      - name: skater_assists
+        agg: sum
+        expr: assists
+        description: Total assists (primary + secondary).
+      - name: skater_points
+        agg: sum
+        expr: points
+        description: Total points (goals + assists).
+      - name: skater_shots_on_goal
+        agg: sum
+        expr: shots_on_goal
+      - name: skater_individual_xgoals
+        agg: sum
+        expr: individual_xgoals
+        description: Sum of individual expected goals.
+      - name: skater_games_played
+        agg: sum
+        expr: games_played
+      - name: skater_ice_time_seconds
+        agg: sum
+        expr: ice_time_seconds
+      - name: skater_hits
+        agg: sum
+        expr: hits
+      - name: skater_takeaways
+        agg: sum
+        expr: takeaways
+      - name: skater_high_danger_goals
+        agg: sum
+        expr: high_danger_goals
+      - name: skater_high_danger_shots
+        agg: sum
+        expr: high_danger_shots
+
+  # ---------------------------------------------------------------------------
+  # SKATER GAME STATS
+  # One row per player × game × situation.
+  # Best for: time-series trends, "how has player X performed over time?"
+  # Has a real game_date — supports time-granularity queries (by month, season).
+  # ---------------------------------------------------------------------------
+  - name: skater_game_stats
+    description: >
+      Skater performance per game. Has a game_date time dimension — use this
+      model for time-series queries (trends by month, year, or date range).
+    model: ref('fct_skater_game_stats')
+    defaults:
+      agg_time_dimension: game_date
+
+    entities:
+      - name: skater_game_situation
+        type: primary
+        expr: "player_id || '-' || game_id::varchar || '-' || situation"
+      - name: player
+        type: foreign
+        expr: player_id
+
+    dimensions:
+      - name: game_date
+        type: time
+        type_params:
+          time_granularity: day
+        expr: game_date
+      - name: season
+        type: categorical
+      - name: player_name
+        type: categorical
+      - name: team
+        type: categorical
+      - name: position
+        type: categorical
+      - name: situation
+        type: categorical
+      - name: home_or_away
+        type: categorical
+      - name: game_score_tier
+        type: categorical
+        description: Elite / Good / Average / Below Average based on game score.
+
+    measures:
+      - name: game_goals
+        agg: sum
+        expr: goals
+        agg_time_dimension: game_date
+      - name: game_assists
+        agg: sum
+        expr: assists
+        agg_time_dimension: game_date
+      - name: game_points
+        agg: sum
+        expr: points
+        agg_time_dimension: game_date
+      - name: game_shots_on_goal
+        agg: sum
+        expr: shots_on_goal
+        agg_time_dimension: game_date
+      - name: game_xgoals
+        agg: sum
+        expr: xgoals
+        agg_time_dimension: game_date
+      - name: game_ice_time_seconds
+        agg: sum
+        expr: ice_time_seconds
+        agg_time_dimension: game_date
+
+  # ---------------------------------------------------------------------------
+  # TEAM SEASON STATS
+  # One row per team × season (situation = 'all' only).
+  # Best for: team rankings, xGoals%, Corsi%, goals for/against comparisons.
+  # ---------------------------------------------------------------------------
+  - name: team_season_stats
+    description: >
+      Team performance per season, all situations. One row per team per season.
+      Use for team rankings, xGoals%, Corsi%, and goals for/against analysis.
+    model: ref('fct_team_season_stats')
+
+    entities:
+      - name: team_season
+        type: primary
+        expr: "team || '-' || season::varchar"
+
+    dimensions:
+      - name: season
+        type: categorical
+      - name: team
+        type: categorical
+      - name: team_name
+        type: categorical
+
+    measures:
+      - name: team_goals_for
+        agg: sum
+        expr: goals_for
+      - name: team_goals_against
+        agg: sum
+        expr: goals_against
+      - name: team_xgoals_for
+        agg: sum
+        expr: xgoals_for
+      - name: team_xgoals_against
+        agg: sum
+        expr: xgoals_against
+      - name: team_games_played
+        agg: sum
+        expr: games_played
+      - name: team_avg_corsi_pct
+        agg: average
+        expr: corsi_pct
+        description: Average Corsi percentage across selected teams/seasons.
+      - name: team_avg_fenwick_pct
+        agg: average
+        expr: fenwick_pct
+
+  # ---------------------------------------------------------------------------
+  # GOALIE SEASON STATS
+  # One row per goalie × season (situation = 'all' only).
+  # Best for: save%, GSAx leaderboards, high danger save%.
+  # ---------------------------------------------------------------------------
+  - name: goalie_season_stats
+    description: >
+      Goalie performance per season, all situations. Includes goals saved above
+      expected (GSAx) and high danger save percentage.
+    model: ref('fct_goalie_season_stats')
+
+    entities:
+      - name: goalie_season
+        type: primary
+        expr: "player_id || '-' || season::varchar"
+      - name: goalie
+        type: foreign
+        expr: player_id
+
+    dimensions:
+      - name: season
+        type: categorical
+      - name: player_name
+        type: categorical
+      - name: team
+        type: categorical
+
+    measures:
+      - name: goalie_saves
+        agg: sum
+        expr: saves
+      - name: goalie_goals_against
+        agg: sum
+        expr: goals_against
+      - name: goalie_shots_on_goal_against
+        agg: sum
+        expr: shots_on_goal_against
+      - name: goalie_goals_saved_above_expected
+        agg: sum
+        expr: goals_saved_above_expected
+        description: Goals saved above expected (xGA - actual GA). Positive = better than expected.
+      - name: goalie_high_danger_shots_against
+        agg: sum
+        expr: high_danger_shots_against
+      - name: goalie_high_danger_goals_against
+        agg: sum
+        expr: high_danger_goals_against
+      - name: goalie_high_danger_saves
+        agg: sum
+        expr: "high_danger_shots_against - high_danger_goals_against"
+        description: Saves made on high danger (slot area) shots.
+      - name: goalie_ice_time_seconds
+        agg: sum
+        expr: ice_time_seconds
+
+# =============================================================================
+# METRICS
+# =============================================================================
+
+metrics:
+
+  # --- Skater Season Metrics -------------------------------------------------
+
+  - name: total_goals
+    label: "Total Goals"
+    description: Sum of goals scored. Filter situation = 'all' for full-season totals.
+    type: simple
+    type_params:
+      measure:
+        name: skater_goals
+
+  - name: total_assists
+    label: "Total Assists"
+    description: Sum of assists. Filter situation = 'all' for full-season totals.
+    type: simple
+    type_params:
+      measure:
+        name: skater_assists
+
+  - name: total_points
+    label: "Total Points"
+    description: Sum of points (goals + assists). Filter situation = 'all' for full-season totals.
+    type: simple
+    type_params:
+      measure:
+        name: skater_points
+
+  - name: total_shots_on_goal
+    label: "Total Shots on Goal"
+    description: Sum of shots on goal by skaters.
+    type: simple
+    type_params:
+      measure:
+        name: skater_shots_on_goal
+
+  - name: total_xgoals
+    label: "Total Expected Goals"
+    description: Sum of individual expected goals. Measures shot quality volume.
+    type: simple
+    type_params:
+      measure:
+        name: skater_individual_xgoals
+
+  - name: total_games_played
+    label: "Games Played"
+    description: Sum of games played.
+    type: simple
+    type_params:
+      measure:
+        name: skater_games_played
+
+  - name: total_hits
+    label: "Total Hits"
+    type: simple
+    type_params:
+      measure:
+        name: skater_hits
+
+  - name: shooting_pct
+    label: "Shooting Percentage"
+    description: Goals per shot on goal (goals / shots_on_goal). Higher = more efficient scorer.
+    type: ratio
+    type_params:
+      numerator:
+        name: skater_goals
+      denominator:
+        name: skater_shots_on_goal
+
+  # --- Skater Game (Time-Series) Metrics ------------------------------------
+
+  - name: goals_over_time
+    label: "Goals Over Time"
+    description: >
+      Goals aggregated by game_date. Supports time granularity (day, month,
+      year). Use for trend analysis — e.g., McDavid's goals by month.
+    type: simple
+    type_params:
+      measure:
+        name: game_goals
+
+  - name: points_over_time
+    label: "Points Over Time"
+    description: Points aggregated by game_date. Supports time granularity.
+    type: simple
+    type_params:
+      measure:
+        name: game_points
+
+  # --- Team Metrics ----------------------------------------------------------
+
+  - name: team_total_goals_for
+    label: "Team Goals For"
+    description: Total goals scored by the team.
+    type: simple
+    type_params:
+      measure:
+        name: team_goals_for
+
+  - name: team_total_goals_against
+    label: "Team Goals Against"
+    description: Total goals allowed by the team.
+    type: simple
+    type_params:
+      measure:
+        name: team_goals_against
+
+  - name: team_xgoals_pct
+    label: "Team xGoals %"
+    description: >
+      Expected goals percentage: xGF / (xGF + xGA) × 100. The best measure
+      of overall team shot quality dominance. Above 50% = creating more
+      dangerous chances than allowing.
+    type: derived
+    type_params:
+      expr: "team_xgoals_for / (team_xgoals_for + team_xgoals_against) * 100"
+      metrics:
+        - name: team_xgoals_for_total
+        - name: team_xgoals_against_total
+
+  - name: team_xgoals_for_total
+    label: "Team xGoals For"
+    description: Sum of expected goals for. Used as input to team_xgoals_pct.
+    type: simple
+    type_params:
+      measure:
+        name: team_xgoals_for
+
+  - name: team_xgoals_against_total
+    label: "Team xGoals Against"
+    description: Sum of expected goals against. Used as input to team_xgoals_pct.
+    type: simple
+    type_params:
+      measure:
+        name: team_xgoals_against
+
+  - name: avg_corsi_pct
+    label: "Average Corsi %"
+    description: >
+      Average Corsi percentage (shot attempts for / total shot attempts).
+      Proxy for puck possession dominance. Above 50% = more shot attempts than opponent.
+    type: simple
+    type_params:
+      measure:
+        name: team_avg_corsi_pct
+
+  # --- Goalie Metrics --------------------------------------------------------
+
+  - name: total_saves
+    label: "Total Saves"
+    description: Total saves made.
+    type: simple
+    type_params:
+      measure:
+        name: goalie_saves
+
+  - name: total_goals_saved_above_expected
+    label: "Goals Saved Above Expected (GSAx)"
+    description: >
+      xGA minus actual GA. Positive = goalie saved more goals than a
+      league-average goalie would have. The best single metric for goalie value.
+    type: simple
+    type_params:
+      measure:
+        name: goalie_goals_saved_above_expected
+
+  - name: save_pct
+    label: "Save Percentage"
+    description: Saves divided by shots on goal against. League average ~0.906.
+    type: ratio
+    type_params:
+      numerator:
+        name: goalie_saves
+      denominator:
+        name: goalie_shots_on_goal_against
+
+  - name: high_danger_save_pct
+    label: "High Danger Save Percentage"
+    description: >
+      Save percentage on high danger shots (shots from the slot area).
+      Much harder than average — elite goalies post ~0.830+.
+    type: ratio
+    type_params:
+      numerator:
+        name: goalie_high_danger_saves
+      denominator:
+        name: goalie_high_danger_shots_against
